@@ -383,7 +383,7 @@ def surveys_to_excel(survey_data, user_ref_dict):
         ]
     )
 
-    file_name = "amz"
+    file_name = "survey_export"
     file_name = os.path.join(export_folder, f"{file_name}")
     workbook = xlsxwriter.Workbook("{}.xlsx".format(file_name))
     worksheet = workbook.add_worksheet("Surveys")
