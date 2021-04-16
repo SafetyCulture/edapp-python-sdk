@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "edapp-python-sdk"
-version = "0.1.1"
+version = "0.1.2"
 description = "A Python tool for interacting with the EdApp SDK"
 authors = ["Edd Abrahamsen-Mills <edward.abrahamsen-mills@safetyculture.io>"]
 
