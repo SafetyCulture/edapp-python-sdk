@@ -1,2 +1,2 @@
 # edapp-python-sdk
-A Python tool for interacting with the EdApp API
+A Python SDK for extracting data from the EdApp API
