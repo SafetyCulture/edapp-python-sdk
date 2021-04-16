@@ -126,7 +126,7 @@ def database_or_export(cur, table):
             "courseprogress",
             "lessonprogress",
         ]:
-            one_week_ago = datetime.datetime.today() - rd.relativedelta(hours=48)
+            one_week_ago = datetime.datetime.today() - rd.relativedelta(hours=24)
             if last_export < one_week_ago:
                 print(
                     f"Table '{table}' has not been updated in the last 24 hours, updating."
@@ -428,7 +428,7 @@ def surveys_to_excel(survey_data, user_ref_dict):
 
 def write_new_config(config):
     config["TOKENS"] = {"edapp": "YOUR TOKEN HERE"}
-    config["SETTINGS"] = {"start_date": "2021-01-01"}
+    config["SETTINGS"] = {"start_date": "2021-01-01", "include_lesson_progress": False}
     config.write(open("config.ini", "w"))
     print(
         "Created new config file, please update with your API token and re-run the tool."
@@ -438,14 +438,11 @@ def write_new_config(config):
 
 def get_config():
     config = configparser.ConfigParser()
-    print(config)
     if not os.path.isfile("config.ini"):
         write_new_config(config)
     else:
         config.read("config.ini")
-        print(config.sections())
         if ["TOKENS", "SETTINGS"] != config.sections():
-            print("missing")
             write_new_config(config)
         else:
             ea_api_key = config["TOKENS"]["edapp"]
@@ -480,7 +477,6 @@ def create_new_groups():
         if check_for_existing_group:
             print("Group already exists, skipping.")
         if not check_for_existing_group:
-            print("I would have made a group")
             ea.create_group(group)
 
 
@@ -488,7 +484,6 @@ def export_all():
     ea = get_config()
     include_lessons = ea["lessons"]
     include_lessons = True if include_lessons.lower() == "true" else False
-    print(include_lessons)
     ea = ea["ea"]
     # users, custom_fields, courses, lessons, survey_answers, attempts
     all_results = export_reference_tables(ea, include_lessons)

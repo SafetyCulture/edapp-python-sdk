@@ -310,7 +310,6 @@ class EdApp:
             if result:
                 if item == "lessons":
                     result = [dict(item, **{"courseId": c}) for item in result]
-                    print(result)
                 compiled_list.extend(result)
 
         return compiled_list
