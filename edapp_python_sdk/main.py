@@ -480,6 +480,14 @@ def create_new_groups():
             ea.create_group(group)
 
 
+def edapp_export():
+    all_results = export_all()
+    if all_results:
+        print('Export complete.')
+    else:
+        print('Nothing to export')
+
+
 def export_all():
     ea = get_config()
     include_lessons = ea["lessons"]
