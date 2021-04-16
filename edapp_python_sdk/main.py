@@ -474,7 +474,7 @@ def create_new_groups():
     ea = get_config()
     ea = ea["ea"]
     existing_groups = ea.get_user_groups()
-    list_of_groups = ["Test Group"]
+    list_of_groups = []
     for group in list_of_groups:
         check_for_existing_group = [x for x in existing_groups if x["name"] == group]
         if check_for_existing_group:
