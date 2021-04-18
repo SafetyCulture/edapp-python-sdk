@@ -1,4 +1,5 @@
 import datetime
+import logging
 import sys
 
 import dateutil.relativedelta as rd
@@ -8,7 +9,7 @@ from dateutil.parser import parse
 import xlsxwriter
 import xlsxwriter.utility
 
-from edapp_python_sdk import edapppy
+from edapp_python_sdk import edapppy, log
 import pandas as pd
 import sqlite3
 import configparser
@@ -110,6 +111,7 @@ def df_to_dict(data, columns):
 
 
 def database_or_export(cur, table):
+    logger = logging.getLogger("ea_logger")
     ensure_table_exists(cur, table)
     rows, cols = get_table_rows(cur, table)
     if rows:
@@ -124,14 +126,16 @@ def database_or_export(cur, table):
             "surveyanswers",
             "attempts",
             "courseprogress",
-            "lessonprogress",
+            "lessonprogress"
         ]:
             one_week_ago = datetime.datetime.today() - rd.relativedelta(hours=24)
             if last_export < one_week_ago:
                 print(
                     f"Table '{table}' has not been updated in the last 24 hours, updating."
                 )
+                logger.info(f'{table} up to date.')
                 return None, None, None
+
         return export, cols, last_export
 
     else:
@@ -236,6 +240,7 @@ def export_reference_tables(ea, include_lessons):
 
 
 def export_analytics(ea, cur, to_export, sql_table):
+    logger = logging.getLogger("ea_logger")
     data, cols, last_export = database_or_export(cur, to_export)
     updated_data = ea.discover_analytics(to_export, startdatetime=last_export)
     if updated_data:

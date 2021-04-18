@@ -13,8 +13,18 @@ import errno
 from tqdm import tqdm
 import time
 from random import randint
+from rich.logging import RichHandler
+from rich.console import Console
+from rich.table import Table
+from rich.progress import track
 
 HTTP_USER_AGENT_ID = "edapp-python-sdk"
+
+
+def get_log():
+    logger = logging.getLogger("ea_logger")
+
+    return logger
 
 
 class EdApp:
@@ -48,7 +58,7 @@ class EdApp:
         self.create_directory_if_not_exists(self.log_dir)
         self.configure_logging()
         self.api_token = api_token
-        logger = logging.getLogger(__name__)
+        logger = logging.getLogger("ea_logger")
         if self.api_token:
             self.custom_http_headers = {
                 "User-Agent": HTTP_USER_AGENT_ID,
@@ -105,10 +115,11 @@ class EdApp:
         """
         Configure logging to log to std output as well as to log file
         """
-        log_level = logging.INFO
+
+        log_level = logging.DEBUG
 
         log_filename = datetime.now().strftime("%Y-%m-%d") + ".log"
-        ea_logger = logging.getLogger(__name__)
+        ea_logger = logging.getLogger("ea_logger")
         ea_logger.setLevel(log_level)
         formatter = logging.Formatter("%(asctime)s : %(levelname)s : %(message)s")
 
@@ -118,9 +129,10 @@ class EdApp:
         ea_logger.addHandler(fh)
 
         sh = logging.StreamHandler(sys.stdout)
-        sh.setLevel(log_level)
+        sh.setLevel(logging.FATAL)
         sh.setFormatter(formatter)
         ea_logger.addHandler(sh)
+        ea_logger.addHandler(RichHandler(level="INFO",rich_tracebacks=True))
 
     def create_directory_if_not_exists(self, path):
         """
@@ -158,8 +170,8 @@ class EdApp:
 
         # Write out the arguments passed to the function
         func_args = locals().items()
-
-        logger = logging.getLogger("ea_logger")
+        logger = get_log()
+        # logger = logging.getLogger("ea_logger")
 
         result_count = None
 
@@ -186,7 +198,11 @@ class EdApp:
         # Append any additional arguments to the URL
         for k, v in func_args:
             if v and k not in ["self", "to_export", "page", "pagesize"]:
+                if k == "startdatetime" and to_export == "courseprogress":
+                    k = "modifiedsincedatetime"
+                logger.debug(f'Appending {k}:{v} to {search_url}')
                 search_url += f"&{k}={v}"
+
         if to_export == "lessonprogress":
             if startdatetime:
                 total_results = self.get_all_lesson_events(
@@ -231,8 +247,7 @@ class EdApp:
         search_url,
         to_export,
         page=1,
-        pagesize=1000,
-        startdatetime="2000-01-01T00:00:00.000Z",
+        pagesize=1000
     ):
         logger = logging.getLogger("ea_logger")
         result_count = None
@@ -243,13 +258,24 @@ class EdApp:
             search_url = search_url + "?"
         while result_count != 0:
             current_url = f"{search_url}&page={page}&pagesize={pagesize}"
-
             log_string = f"\nDownloading {to_export}: " + "\n"
-            log_string += "modifiedsince = " + str(startdatetime) + "\n"
+            log_string += "url          = " + str(search_url) + "\n"
             log_string += "page          = " + str(page) + "\n"
-            log_string += "page size     = " + str(pagesize) + "\n"
-            logger.info(log_string)
-            print(current_url)
+            log_string += "page size     = " + str(pagesize)
+            logger.debug(log_string)
+
+            table = Table()
+
+            table.add_column("Export", justify="center", style="cyan", no_wrap=True)
+            table.add_column("URL", justify="center", style="cyan", no_wrap=True)
+            table.add_column("Page", style="magenta")
+            table.add_column("Page Size", justify="right", style="green")
+
+            table.add_row(to_export, str(search_url), str(page), str(pagesize))
+
+            console = Console()
+            console.print(table)
+
             response = self.authenticated_request_get(current_url)
             result = (
                 response.json() if response.status_code == requests.codes.ok else None
@@ -297,16 +323,20 @@ class EdApp:
         return returned_list
 
     def get_results(self, list_of_items, url, item):
+        logger = logging.getLogger("ea_logger")
         compiled_list = []
-        progress_bar = tqdm(list_of_items)
-        for c in progress_bar:
+
+        # progress_bar = tqdm(list_of_items)
+        for c in track(list_of_items, description="Processing..."):
             search_url = url + f"/{c}/{item}"
-            progress_bar.set_description(f"Getting {item} from ID {c}")
+            logger.debug(f'Searching using {search_url}')
+            log_message = f"Getting {item} from ID {c}"
             response = self.authenticated_request_get(search_url)
+            self.log_http_status(response.status_code, log_message)
             result = (
                 response.json() if response.status_code == requests.codes.ok else None
             )
-            progress_bar.set_description(f"Found {len(result)} {item} in {c}")
+            logger.debug(f"Found {len(result)} {item} in {c}")
             if result:
                 if item == "lessons":
                     result = [dict(item, **{"courseId": c}) for item in result]
@@ -425,7 +455,7 @@ class EdApp:
         :param status_code:  http status code to log
         :param message:      to describe where the status code was obtained
         """
-        logger = logging.getLogger("ea_logger")
+        logger = get_log()
         status_description = requests.status_codes._codes[status_code][0]
         log_string = (
             str(status_code)
