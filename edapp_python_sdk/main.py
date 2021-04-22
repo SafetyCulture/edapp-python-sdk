@@ -9,7 +9,7 @@ from dateutil.parser import parse
 import xlsxwriter
 import xlsxwriter.utility
 
-from edapp_python_sdk import edapppy, log
+from edapp_python_sdk import edapppy
 import pandas as pd
 import sqlite3
 import configparser
@@ -228,6 +228,7 @@ def export_reference_tables(ea, include_lessons):
 
     return {
         "users": users,
+        "user_groups": user_groups,
         "custom_fields": custom_fields,
         "courses": courses,
         "lessons": lessons,
