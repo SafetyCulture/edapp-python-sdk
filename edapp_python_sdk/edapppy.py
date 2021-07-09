@@ -429,6 +429,14 @@ class EdApp:
                     else:
                         user[k] = ",".join(v)
 
+        if not custom_fields:
+            custom_fields = [{
+                                    "user_id": None,
+                                    "user_email": None,
+                                    "custom_field": None,
+                                    "custom_value": None,
+                                }]
+
         return list_of_users, custom_fields, user_groups
 
     def discover_courses(self):

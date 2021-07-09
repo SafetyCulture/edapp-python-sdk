@@ -178,7 +178,7 @@ def export_reference_tables(ea, include_lessons):
     if not users or not custom_fields or not group_users:
         users, custom_fields, group_users = ea.discover_users()
         df_users = to_dataframe(users)
-        df_users = df_users.drop(columns=["customFields", "userGroups"])
+        df_users.drop(columns=["customFields", "userGroups"], inplace=True)
         export_to_csv(df_users, "users")
         setup_sqlite("users", users_sql, convert_to_records(df_users), drop=True)
 
@@ -198,6 +198,8 @@ def export_reference_tables(ea, include_lessons):
             convert_to_records(df_group_users),
             drop=True,
         )
+
+        users = df_to_dictionary(df_users)
 
     # Courses
     courses, course_cols, last_export = database_or_export(cur, "courses")
