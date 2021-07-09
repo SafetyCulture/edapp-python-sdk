@@ -39,7 +39,11 @@ def setup_sqlite(table_name, column_names, values, drop=False):
         cur.execute(f"""DROP TABLE if exists {table_name}""")
     cur.execute(f"""CREATE TABLE if not exists {table_name} {column_names}""")
     for row in values:
-        cur.execute(f"INSERT OR REPLACE INTO {table_name} VALUES {row}")
+        try:
+            cur.execute(f"INSERT OR REPLACE INTO {table_name} VALUES {row}")
+        except:
+            print(row)
+            sys.exit()
     conn.commit()
     conn.close()
 
@@ -147,11 +151,14 @@ def export_reference_tables(ea, include_lessons):
     cur = conn.cursor()
 
     # Users
+    # Check for the existence of each table and load its data if it exists.
     users, user_cols, last_export = database_or_export(cur, "users")
-    custom_fields, custom_field_cols, last_export = database_or_export(
-        cur, "custom_fields"
-    )
+    custom_fields, custom_field_cols, last_export = database_or_export(cur, "custom_fields")
     user_groups, user_group_cols, last_export = database_or_export(cur, "usergroups")
+    user_child_groups, user_child_groups_cols, last_export = database_or_export(cur, "usergroups_children")
+    group_users, group_user_cols, last_export = database_or_export(cur, "group_users")
+
+    # If anything is missing, we'll go and grab the data
     if not user_groups:
         user_groups = ea.get_user_groups()
         df_groups = to_dataframe(user_groups)
@@ -164,16 +171,16 @@ def export_reference_tables(ea, include_lessons):
             if groups_with_children:
                 user_child_groups = ea.get_child_user_groups(groups_with_children)
                 df_child_groups = to_dataframe(user_child_groups)
-                export_to_csv(df_groups, "usergroup_children")
+                export_to_csv(df_groups, "usergroups_children")
                 setup_sqlite(
-                    "usergroup_children",
-                    user_children_sql,
+                    "usergroups_children",
+                    usergroups_children_sql,
                     convert_to_records(df_child_groups),
                     drop=True,
                 )
 
-    if not users or not custom_fields:
-        users, custom_fields, user_groups = ea.discover_users()
+    if not users or not custom_fields or not group_users:
+        users, custom_fields, group_users = ea.discover_users()
         df_users = to_dataframe(users)
         df_users = df_users.drop(columns=["customFields", "userGroups"])
         export_to_csv(df_users, "users")
@@ -187,12 +194,12 @@ def export_reference_tables(ea, include_lessons):
             convert_to_records(df_custom_fields),
             drop=True,
         )
-        df_user_groups = to_dataframe(user_groups)
-        export_to_csv(df_user_groups, "group_users")
+        df_group_users = to_dataframe(group_users)
+        export_to_csv(df_group_users, "group_users")
         setup_sqlite(
             "group_users",
             group_users_sql,
-            convert_to_records(df_user_groups),
+            convert_to_records(df_group_users),
             drop=True,
         )
 
@@ -229,6 +236,8 @@ def export_reference_tables(ea, include_lessons):
     return {
         "users": users,
         "user_groups": user_groups,
+        "user_group_children": user_child_groups,
+        "group_users": group_users,
         "custom_fields": custom_fields,
         "courses": courses,
         "lessons": lessons,

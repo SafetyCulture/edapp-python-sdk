@@ -14,7 +14,7 @@ users_sql = """(
   roles text, last_export datetime
 )"""
 
-user_children_sql = """(
+usergroups_children_sql = """(
     id text PRIMARY KEY, name text,
     inviteCode text, hasChildren boolean,
     parentGroupId text, last_export datetime
@@ -40,7 +40,7 @@ courses_sql = """(
 
 lessons_sql = """(
   id text PRIMARY KEY, externalId text, 
-  title text, description text, status text, courseId text,
+  title text, description text, status text, minimum_score integer, courseId text,
   last_export datetime
 )
 """

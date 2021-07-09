@@ -132,7 +132,7 @@ class EdApp:
         sh.setLevel(logging.FATAL)
         sh.setFormatter(formatter)
         ea_logger.addHandler(sh)
-        ea_logger.addHandler(RichHandler(level="INFO",rich_tracebacks=True))
+        ea_logger.addHandler(RichHandler(level="INFO"))
 
     def create_directory_if_not_exists(self, path):
         """
@@ -414,7 +414,7 @@ class EdApp:
                 if k == "customFields":
                     if v != {}:
                         for x, y in v.items():
-                            if y:
+                            if y == "Hello":
                                 field_title = "custom_" + x
                                 new_row = {
                                     "user_id": user_id,
