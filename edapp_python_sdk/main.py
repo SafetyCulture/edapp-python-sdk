@@ -39,11 +39,7 @@ def setup_sqlite(table_name, column_names, values, drop=False):
         cur.execute(f"""DROP TABLE if exists {table_name}""")
     cur.execute(f"""CREATE TABLE if not exists {table_name} {column_names}""")
     for row in values:
-        try:
-            cur.execute(f"INSERT OR REPLACE INTO {table_name} VALUES {row}")
-        except:
-            print(row)
-            sys.exit()
+        cur.execute(f"INSERT OR REPLACE INTO {table_name} VALUES {row}")
     conn.commit()
     conn.close()
 
