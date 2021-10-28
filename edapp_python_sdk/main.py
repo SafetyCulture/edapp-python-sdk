@@ -29,7 +29,7 @@ def check_for_db():
     create_export_folder()
     path = os.path.join(export_folder, db_name)
 
-    return sqlite3.connect(path)
+    return sqlite3.connect(path, timeout=100)
 
 
 def setup_sqlite2(table_name, column_names, values, drop=False):
