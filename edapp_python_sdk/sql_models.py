@@ -9,7 +9,7 @@ group_users_sql = """(
 
 users_sql = """(
   id text PRIMARY KEY, name text, email text, 
-  firstName text, lastName text, externalId text, 
+  firstName text, lastName text, timeZone text, externalId text, 
   lastActiveDate datetime, userGroupsManaged text, 
   roles text, last_export datetime
 )"""

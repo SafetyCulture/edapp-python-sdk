@@ -32,7 +32,7 @@ def check_for_db():
     return sqlite3.connect(path)
 
 
-def setup_sqlite(table_name, column_names, values, drop=False):
+def setup_sqlite2(table_name, column_names, values, drop=False):
     conn = check_for_db()
     cur = conn.cursor()
     if drop:
@@ -42,6 +42,18 @@ def setup_sqlite(table_name, column_names, values, drop=False):
         cur.execute(f"INSERT OR REPLACE INTO {table_name} VALUES {row}")
     conn.commit()
     conn.close()
+
+
+def setup_sqlite(conn, cur, table_name, column_names, values, drop=False):
+    # conn = check_for_db()
+    # cur = conn.cursor()
+    if drop:
+        cur.execute(f"""DROP TABLE if exists {table_name}""")
+    cur.execute(f"""CREATE TABLE if not exists {table_name} {column_names}""")
+    for row in values:
+        cur.execute(f"INSERT OR REPLACE INTO {table_name} VALUES {row}")
+    # conn.commit()
+    # conn.close()
 
 
 def export_to_csv(df, file_name):
@@ -159,7 +171,7 @@ def export_reference_tables(ea, include_lessons):
         user_groups = ea.get_user_groups()
         df_groups = to_dataframe(user_groups)
         export_to_csv(df_groups, "usergroups")
-        setup_sqlite(
+        setup_sqlite(conn, cur,
             "usergroups", usergroups_sql, convert_to_records(df_groups), drop=True
         )
         if user_groups:
@@ -168,7 +180,7 @@ def export_reference_tables(ea, include_lessons):
                 user_child_groups = ea.get_child_user_groups(groups_with_children)
                 df_child_groups = to_dataframe(user_child_groups)
                 export_to_csv(df_groups, "usergroups_children")
-                setup_sqlite(
+                setup_sqlite(conn, cur,
                     "usergroups_children",
                     usergroups_children_sql,
                     convert_to_records(df_child_groups),
@@ -180,11 +192,12 @@ def export_reference_tables(ea, include_lessons):
         df_users = to_dataframe(users)
         df_users = df_users.drop(columns=["customFields", "userGroups"])
         export_to_csv(df_users, "users")
-        setup_sqlite("users", users_sql, convert_to_records(df_users), drop=True)
+        setup_sqlite(conn, cur, "users", users_sql, convert_to_records(df_users), drop=True)
 
         df_custom_fields = to_dataframe(custom_fields)
         export_to_csv(df_custom_fields, "custom_fields")
         setup_sqlite(
+            conn, cur,
             "custom_fields",
             custom_fields_sql,
             convert_to_records(df_custom_fields),
@@ -193,6 +206,7 @@ def export_reference_tables(ea, include_lessons):
         df_group_users = to_dataframe(group_users)
         export_to_csv(df_group_users, "group_users")
         setup_sqlite(
+            conn, cur,
             "group_users",
             group_users_sql,
             convert_to_records(df_group_users),
@@ -205,7 +219,7 @@ def export_reference_tables(ea, include_lessons):
         courses = ea.discover_courses()
         df_courses = to_dataframe(courses)
         export_to_csv(df_courses, "courses")
-        setup_sqlite("courses", course_sql, convert_to_records(df_courses), drop=True)
+        setup_sqlite(conn, cur, "courses", course_sql, convert_to_records(df_courses), drop=True)
 
     # Lessons
     lessons, lesson_cols, last_export = database_or_export(cur, "lessons")
@@ -213,21 +227,24 @@ def export_reference_tables(ea, include_lessons):
         lessons = ea.discover_lessons(courses)
         df_lessons = to_dataframe(lessons)
         export_to_csv(df_lessons, "lessons")
-        setup_sqlite("lessons", lessons_sql, convert_to_records(df_lessons), drop=True)
+        setup_sqlite(conn, cur, "lessons", lessons_sql, convert_to_records(df_lessons), drop=True)
 
     # Analytics
-    survey_answers = export_analytics(ea, cur, "surveyanswers", "surveyanswers_sql")
-    attempts = export_analytics(ea, cur, "attempts", "attempts_sql")
-    courseprogress = export_analytics(ea, cur, "courseprogress", "courseprogress_sql")
+    survey_answers = export_analytics(ea, cur, conn, "surveyanswers", "surveyanswers_sql")
+    attempts = export_analytics(ea, cur, conn,  "attempts", "attempts_sql")
+    courseprogress = export_analytics(ea, cur, conn, "courseprogress", "courseprogress_sql")
     coursestatistics = export_analytics(
-        ea, cur, "coursestatistics", "coursestatistics_sql"
+        ea, cur, conn, "coursestatistics", "coursestatistics_sql"
     )
     if include_lessons is True:
         lesson_progress = export_analytics(
-            ea, cur, "lessonprogress", "lessonprogress_sql"
+            ea, cur, conn, "lessonprogress", "lessonprogress_sql"
         )
     else:
         lesson_progress = None
+
+    conn.commit()
+    conn.close()
 
     return {
         "users": users,
@@ -245,7 +262,7 @@ def export_reference_tables(ea, include_lessons):
     }
 
 
-def export_analytics(ea, cur, to_export, sql_table):
+def export_analytics(ea, cur, conn, to_export, sql_table):
     logger = logging.getLogger("ea_logger")
     data, cols, last_export = database_or_export(cur, to_export)
     updated_data = ea.discover_analytics(to_export, startdatetime=last_export)
@@ -256,6 +273,8 @@ def export_analytics(ea, cur, to_export, sql_table):
         else:
             drop = False
         setup_sqlite(
+            conn,
+            cur,
             to_export,
             globals()[sql_table],
             convert_to_records(df, table=to_export),
