@@ -1,3 +1,6 @@
+# This project is no longer maintained, instead please refer to the [EdApp developer documentation](https://support.edapp.com/technical-api-documentation) on how to consume the EdApp API.
+
+
 # edapp-python-sdk
 A Python SDK for extracting data from the EdApp API
 
